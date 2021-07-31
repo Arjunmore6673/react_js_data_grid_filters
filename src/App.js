@@ -1,30 +1,79 @@
 import React, {useState} from "react";
 import ReactDataGrid from "react-data-grid";
+import createRowData from "./createRowData";
 
 const {
+    Filters, Toolbar, Data,
     DraggableHeader: {DraggableContainer}
 } = require("react-data-grid-addons");
+
+const defaultColumnProperties = {
+    resizable: true,
+    filterable: true,
+    width: 120,
+    draggable: true
+
+};
+
+const selectors = Data.Selectors;
+const {
+    NumericFilter,
+    AutoCompleteFilter,
+    MultiSelectFilter,
+    SingleSelectFilter
+} = Filters;
 
 const columns = [
     {
         key: "id",
         name: "ID",
-        width: 50,
-        draggable: true
+        filterRenderer: NumericFilter
     },
     {
-        key: "title",
-        name: "Title",
-        draggable: true,
-        resizable: true
+        key: "firstName",
+        name: "First Name",
+        filterRenderer: AutoCompleteFilter
     },
     {
-        key: "count",
-        name: "Count",
-        draggable: true,
-        resizable: true
+        key: "lastName",
+        name: "Last Name",
+        filterRenderer: AutoCompleteFilter
+    },
+    {
+        key: "jobTitle",
+        name: "Job Title",
+        filterRenderer: MultiSelectFilter
+    },
+    {
+        key: "jobArea",
+        name: "Job Area",
+        filterRenderer: SingleSelectFilter
+    },
+    {
+        key: "jobType",
+        name: "Job Type"
+    },
+    {
+        key: "email",
+        name: "Email"
+    },
+    {
+        key: "street",
+        name: "Street"
+    },
+    {
+        key: "zipCode",
+        name: "ZipCode"
+    },
+    {
+        key: "date",
+        name: "Date"
+    },
+    {
+        key: "catchPhrase",
+        name: "Catch Phrase"
     }
-];
+].map(c => ({...c, ...defaultColumnProperties}));
 
 
 const createRows = () => {
@@ -41,15 +90,8 @@ const createRows = () => {
 
 export default function App() {
 
+    const [state, setState] = useState({columns, rows: createRowData(30)})
 
-    const [state, setState] = useState({
-        columns,
-        rows: createRows(10),
-    })
-
-    const rowGetter = i => {
-        return state.rows[i];
-    };
 
     const onHeaderDrop = (source, target) => {
         let stateCopy = state;
@@ -74,14 +116,43 @@ export default function App() {
         setState(reorderedColumns)
     };
 
+    const handleFilterChange = filter => filters => {
+        const newFilters = {...filters};
+        if (filter.filterTerm) {
+            newFilters[filter.column.key] = filter;
+        } else {
+            delete newFilters[filter.column.key];
+        }
+        return newFilters;
+    };
+
+    function getValidFilterValues(rows, columnId) {
+        return rows
+            .map(r => r[columnId])
+            .filter((item, i, a) => {
+                return i === a.indexOf(item);
+            });
+    }
+
+    function getRows(rows, filters) {
+        return selectors.getRows({rows, filters});
+    }
+
+    const [filters, setFilters] = useState({});
+    const filteredRows = getRows(state.rows, filters);
 
     return (
         <DraggableContainer onHeaderDrop={onHeaderDrop}>
             <ReactDataGrid
+                toolbar={<Toolbar enableFilter={true}/>}
                 columns={state.columns}
-                rowGetter={rowGetter}
-                rowsCount={state.rows.length}
+                onClearFilters={() => setFilters({})}
+                rowGetter={i => filteredRows[i]}
+                rowsCount={filteredRows.length}
                 minHeight={500}
+                onAddFilter={filter => setFilters(handleFilterChange(filter))}
+                getValidFilterValues={columnKey => getValidFilterValues(state.rows, columnKey)}
+
             />
         </DraggableContainer>
     );
