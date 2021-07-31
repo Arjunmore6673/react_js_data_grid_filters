@@ -1,118 +1,89 @@
-import React, {useState} from "react";
+import React from "react";
 import ReactDataGrid from "react-data-grid";
-import {Data, Filters, Toolbar} from "react-data-grid-addons";
-import createRowData from "./createRowData";
 
-import "./App.css";
-
-const defaultColumnProperties = {
-    filterable: true,
-    width: 160
-};
-
-const selectors = Data.Selectors;
 const {
-    NumericFilter,
-    AutoCompleteFilter,
-    MultiSelectFilter,
-    SingleSelectFilter
-} = Filters;
-const columns = [
-    {
-        key: "id",
-        name: "ID",
-        filterRenderer: NumericFilter
-    },
-    {
-        key: "firstName",
-        name: "First Name",
-        filterRenderer: AutoCompleteFilter
-    },
-    {
-        key: "lastName",
-        name: "Last Name",
-        filterRenderer: AutoCompleteFilter
-    },
-    {
-        key: "jobTitle",
-        name: "Job Title",
-        filterRenderer: MultiSelectFilter
-    },
-    {
-        key: "jobArea",
-        name: "Job Area",
-        filterRenderer: SingleSelectFilter
-    },
-    {
-        key: "jobType",
-        name: "Job Type"
-    },
-    {
-        key: "email",
-        name: "Email",
-        editable: true,
-    },
-    {
-        key: "street",
-        name: "Street"
-    },
-    {
-        key: "zipCode",
-        name: "ZipCode"
-    },
-    {
-        key: "date",
-        name: "Date"
-    },
-    {
-        key: "catchPhrase",
-        name: "Catch Phrase"
-    }
-].map(c => ({...c, ...defaultColumnProperties}));
+    DraggableHeader: { DraggableContainer }
+} = require("react-data-grid-addons");
 
-const ROW_COUNT = 50;
 
-const handleFilterChange = filter => filters  => {
-    const newFilters = {...filters};
-    if (filter.filterTerm) {
-        newFilters[filter.column.key] = filter;
-    } else {
-        delete newFilters[filter.column.key];
-    }
-    return newFilters;
-};
 
-function getValidFilterValues(rows, columnId) {
-    return rows
-        .map(r => r[columnId])
-        .filter((item, i, a) => {
-            return i === a.indexOf(item);
+class App extends React.Component {
+    createRows = () => {
+        let rows = [];
+        for (let i = 1; i < 1000; i++) {
+            rows.push({
+                id: i,
+                title: "Title " + i,
+                count: i * 1000
+            });
+        }
+
+        return rows;
+    };
+
+    rowGetter = i => {
+        return this.state.rows[i];
+    };
+
+    onHeaderDrop = (source, target) => {
+        const stateCopy = Object.assign({}, this.state);
+        const columnSourceIndex = this.state.columns.findIndex(
+            i => i.key === source
+        );
+        const columnTargetIndex = this.state.columns.findIndex(
+            i => i.key === target
+        );
+
+        stateCopy.columns.splice(
+            columnTargetIndex,
+            0,
+            stateCopy.columns.splice(columnSourceIndex, 1)[0]
+        );
+
+        const emptyColumns = Object.assign({}, this.state, { columns: [] });
+        this.setState(emptyColumns);
+
+        const reorderedColumns = Object.assign({}, this.state, {
+            columns: stateCopy.columns
         });
+        this.setState(reorderedColumns);
+    };
+
+    state = {
+        columns: [
+            {
+                key: "id",
+                name: "ID",
+                width: 50,
+                draggable: true
+            },
+            {
+                key: "title",
+                name: "Title",
+                draggable: true,
+                resizable: true
+            },
+            {
+                key: "count",
+                name: "Count",
+                draggable: true,
+                resizable: true
+            }
+        ],
+        rows: this.createRows()
+    };
+
+    render() {
+        return (
+            <DraggableContainer onHeaderDrop={this.onHeaderDrop}>
+                <ReactDataGrid
+                    columns={this.state.columns}
+                    rowGetter={this.rowGetter}
+                    rowsCount={this.state.rows.length}
+                    minHeight={500}
+                />
+            </DraggableContainer>
+        );
+    }
 }
-
-function getRows(rows, filters) {
-    return selectors.getRows({rows, filters});
-}
-
-const rows = createRowData(10);
-
-function App() {
-    const [filters, setFilters] = useState({});
-
-    const filteredRows = getRows(rows, filters);
-    return (
-        <ReactDataGrid
-            style={{}}
-            columns={columns}
-            rowGetter={i => filteredRows[i]}
-            rowsCount={filteredRows.length}
-            minHeight={500}
-            toolbar={<Toolbar enableFilter={true}/>}
-            onAddFilter={filter => setFilters(handleFilterChange(filter))}
-            onClearFilters={() => setFilters({})}
-            getValidFilterValues={columnKey => getValidFilterValues(rows, columnKey)}
-        />
-    );
-}
-
-export default App
+export default App;
