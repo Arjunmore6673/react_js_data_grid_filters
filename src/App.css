@@ -19,6 +19,15 @@
   }
 }
 
+.react-grid-HeaderCell,
+.react-grid-Cell {
+    box-sizing: border-box;
+}
+
+.rdg-selected {
+    box-sizing: border-box;
+}
+
 .App-header {
   background-color: #282c34;
   min-height: 100vh;

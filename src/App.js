@@ -1,7 +1,7 @@
 import React, {useState} from "react";
 import ReactDataGrid from "react-data-grid";
 import createRowData from "./createRowData";
-
+import './App.css'
 const {
     Filters, Toolbar, Data,
     DraggableHeader: {DraggableContainer}
