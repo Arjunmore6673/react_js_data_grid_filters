@@ -11,8 +11,8 @@ const defaultColumnProperties = {
     resizable: true,
     filterable: true,
     width: 120,
-    draggable: true
-
+    draggable: true,
+    sortable: true,
 };
 
 const selectors = Data.Selectors;
@@ -27,12 +27,13 @@ const columns = [
     {
         key: "id",
         name: "ID",
+        sortDescendingFirst: true,
         filterRenderer: NumericFilter
     },
     {
         key: "firstName",
         name: "First Name",
-        filterRenderer: AutoCompleteFilter
+        filterRenderer: AutoCompleteFilter,
     },
     {
         key: "lastName",
@@ -75,6 +76,19 @@ const columns = [
     }
 ].map(c => ({...c, ...defaultColumnProperties}));
 
+const ROW_COUNT = 50;
+
+const sortRows = (initialRows, sortColumn, sortDirection) => {
+    const comparer = (a, b) => {
+        if (sortDirection === "ASC") {
+            return a[sortColumn] > b[sortColumn] ? 1 : -1;
+        } else if (sortDirection === "DESC") {
+            return a[sortColumn] < b[sortColumn] ? 1 : -1;
+        }
+    };
+    return sortDirection === "NONE" ? initialRows : [...initialRows].sort(comparer);
+};
+
 
 const createRows = () => {
     let rows = [];
@@ -91,6 +105,9 @@ const createRows = () => {
 export default function App() {
 
     const [state, setState] = useState({columns, rows: createRowData(30)})
+
+    const [filters, setFilters] = useState({});
+    const [rows, setRows] = useState(createRowData(30));
 
 
     const onHeaderDrop = (source, target) => {
@@ -127,8 +144,7 @@ export default function App() {
     };
 
     function getValidFilterValues(rows, columnId) {
-        return rows
-            .map(r => r[columnId])
+        return rows.map(r => r[columnId])
             .filter((item, i, a) => {
                 return i === a.indexOf(item);
             });
@@ -138,21 +154,29 @@ export default function App() {
         return selectors.getRows({rows, filters});
     }
 
-    const [filters, setFilters] = useState({});
     const filteredRows = getRows(state.rows, filters);
+    console.log('state.rows')
+    console.log(state.rows)
+    console.log('filteredRows')
+    console.log(filteredRows)
 
     return (
         <DraggableContainer onHeaderDrop={onHeaderDrop}>
             <ReactDataGrid
                 toolbar={<Toolbar enableFilter={true}/>}
                 columns={state.columns}
-                onClearFilters={() => setFilters({})}
                 rowGetter={i => filteredRows[i]}
                 rowsCount={filteredRows.length}
                 minHeight={500}
-                onAddFilter={filter => setFilters(handleFilterChange(filter))}
                 getValidFilterValues={columnKey => getValidFilterValues(state.rows, columnKey)}
-
+                onClearFilters={() => setFilters({})}
+                onAddFilter={filter => setFilters(handleFilterChange(filter))}
+                onGridSort={(sortColumn, sortDirection) => {
+                    setState({
+                        ...state,
+                        rows: sortRows(state.rows, sortColumn, sortDirection),
+                    })
+                }}
             />
         </DraggableContainer>
     );
